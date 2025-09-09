@@ -53,7 +53,7 @@ function App() {
       <Header onNavClick={p => setPage(p)}/>
 
       {currentPage}
-      {pageResource}
+      {pageResource ? pageResource : <p>Chargement en cours...</p>}
 
 
     </main>
