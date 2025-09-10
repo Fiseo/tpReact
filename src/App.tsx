@@ -1,44 +1,49 @@
-import { useEffect, useState, type JSX } from 'react'
+import {Suspense, useEffect, useState, type JSX, use} from 'react'
 import './App.css'
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import SoftwarePage from './pages/SoftwarePage';
-import Information from './pages/Information';
 import { getResource, type Shortcut, type Software } from "./api";
 
 export type PageSlug = 'home' | 'software';
 
+function addLi(value: string):JSX.Element{
+  return (
+      <li>
+        {value}
+      </li>
+  )
+}
+function Resource({ promise }: {promise: Promise<T[]>}) {
+  const resource = use(promise);
+  const result: JSX.Element[] | JSX.Element = [];
+  let type: string = "";
+
+  if (resource[0].title == undefined)
+    type = "name";
+  else
+    type = "title";
+
+  for(const data of resource){
+    result.push(addLi(data[type]));
+  }
+  return (
+      <section>
+        <ul>
+          {result}
+        </ul>
+      </section>
+      );
+}
+
 function App() {
   const [page, setPage] = useState<PageSlug>('home');
-  const [pageResource, setPageResource] = useState<JSX.Element>()
-  useEffect(() => {
-    let resource: Promise<T[]> | null
-      if (page === 'home') {
+  let resource: Promise<T[]>;
+  if (page === 'home') {
     resource = getResource<Shortcut>('shortcuts');
-  } else if (page === 'software') {
+  } else {
     resource = getResource<Software>('software');
-  } else { resource = null}
-  
-  if (resource == null) {
-    return console.log("Une erreur est survenu")
   }
-
-  resource.then((data) => {
-    if (data.length === 0) {
-      return console.log("Aucune donnée disponible actuellement");
-    } else {
-        if (data[0].title == undefined){
-          const type = "name";
-          setPageResource(Information(data,type));
-        }
-        else {
-          const type = "title";
-          setPageResource(Information(data,type));
-        }
-    }}
-  )
-  }, [page]
-  );
 
   let currentPage = null;
   if (page === 'home') {
@@ -53,9 +58,11 @@ function App() {
       <Header onNavClick={p => setPage(p)}/>
 
       {currentPage}
-      {pageResource ? pageResource : <p>Chargement en cours...</p>}
 
-
+      <Suspense fallback={<p>Chargement en cours...</p>}>
+        <Resource promise={resource}/>
+      </Suspense>
+      
     </main>
   )
 }
